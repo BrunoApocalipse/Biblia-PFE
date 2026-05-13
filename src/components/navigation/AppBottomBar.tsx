@@ -10,6 +10,7 @@ import {
 } from "expo-router";
 
 import {
+  useMemo,
   useState,
 } from "react";
 
@@ -22,6 +23,8 @@ import {
 import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
+
+import VerseActionBar from "@/components/bible/VerseActionBar";
 
 import AppBottomSheet from "@/components/navigation/AppBottomSheet";
 
@@ -53,56 +56,165 @@ export default function AppBottomBar() {
   const [open, setOpen] =
     useState(false);
 
-  const {
-    lastReading,
-  } = useReadingStore();
+  // =====================================
+  // STORE
+  // =====================================
+
+  const lastReading =
+    useReadingStore(
+      (state) =>
+        state.lastReading
+    );
+
+  const selectedVerse =
+    useReadingStore(
+      (state) =>
+        state.selectedVerse
+    );
+
+  // =====================================
+  // ROUTES
+  // =====================================
 
   const isHome =
     pathname === "/" ||
     pathname === "/index";
 
-  // =====================================
-  // LAST READING
-  // =====================================
-
-  const book =
-    lastReading?.book ??
-    "gn";
-
-  const chapter =
-    lastReading?.chapter ??
-    1;
-
-  const verse =
-    lastReading?.verse ??
-    1;
-
-  const version =
-    lastReading?.version ??
-    "NVI";
+  const isReading =
+    pathname.includes(
+      "/reading/"
+    );
 
   // =====================================
-  // LABEL
+  // READING DATA
+  // =====================================
+
+  const reading =
+    useMemo(() => {
+      return {
+        book:
+          lastReading?.book ??
+          "gn",
+
+        chapter:
+          lastReading?.chapter ??
+          1,
+
+        verse:
+          lastReading?.verse ??
+          1,
+
+        version:
+          lastReading?.version ??
+          "NVI",
+      };
+    }, [lastReading]);
+
+  // =====================================
+  // LABELS
   // =====================================
 
   const bookLabel =
-    BOOKS_MAP[book]?.name ??
-    book;
+    BOOKS_MAP[
+      reading.book
+    ]?.name ??
+    reading.book;
+
+  // =====================================
+  // ACTION BAR
+  // =====================================
+
+  const hideBottomBar =
+    isReading &&
+    !!selectedVerse;
+
+  // =====================================
+  // NAVIGATION
+  // =====================================
+
+  function goHome() {
+    if (!isHome) {
+      router.push("/");
+    }
+  }
+
+  function openDrawer() {
+    (
+      navigation as any
+    ).openDrawer();
+  }
+
+  function openBooks() {
+    router.push(
+      "/books"
+    );
+  }
+
+  function openChapters() {
+    router.push(
+      `/chapters/${reading.book}`
+    );
+  }
+
+  function openVerse() {
+    router.push({
+      pathname:
+        "/reading/[book]/[chapter]",
+
+      params: {
+        book:
+          reading.book,
+
+        chapter:
+          String(
+            reading.chapter
+          ),
+
+        verse:
+          String(
+            reading.verse
+          ),
+      },
+    });
+  }
+
+  // =====================================
+  // RENDER
+  // =====================================
 
   return (
     <>
+      {/* ACTION BAR */}
+      {hideBottomBar && (
+        <VerseActionBar />
+      )}
+
+      {/* NORMAL BAR */}
       <View
         style={{
           backgroundColor:
             colors.surface,
 
-          paddingBottom:
-            insets.bottom,
-
           borderTopWidth: 0.5,
 
           borderColor:
             "#222",
+
+          paddingBottom:
+            insets.bottom,
+
+          opacity:
+            hideBottomBar
+              ? 0
+              : 1,
+
+          height:
+            hideBottomBar
+              ? 0
+              : undefined,
+
+          overflow:
+            "hidden",
         }}
       >
         <View
@@ -130,11 +242,7 @@ export default function AppBottomBar() {
           >
             {/* HOME */}
             <TouchableOpacity
-              onPress={() => {
-                if (!isHome) {
-                  router.push("/");
-                }
-              }}
+              onPress={goHome}
               style={{
                 padding: 10,
               }}
@@ -156,10 +264,8 @@ export default function AppBottomBar() {
 
             {/* MENU */}
             <TouchableOpacity
-              onPress={() =>
-                (
-                  navigation as any
-                ).openDrawer()
+              onPress={
+                openDrawer
               }
               style={{
                 padding: 10,
@@ -176,23 +282,21 @@ export default function AppBottomBar() {
           {/* CENTER */}
           <View
             style={{
+              flex: 1,
+
               flexDirection:
                 "row",
 
               alignItems:
                 "center",
 
-              flex: 1,
-
               marginLeft: 4,
             }}
           >
             {/* BOOK */}
             <TouchableOpacity
-              onPress={() =>
-                router.push(
-                  "/books"
-                )
+              onPress={
+                openBooks
               }
               style={{
                 flex: 1,
@@ -216,10 +320,8 @@ export default function AppBottomBar() {
 
             {/* CHAPTER */}
             <TouchableOpacity
-              onPress={() =>
-                router.push(
-                  `/chapters/${book}`
-                )
+              onPress={
+                openChapters
               }
               style={{
                 paddingHorizontal: 8,
@@ -230,29 +332,16 @@ export default function AppBottomBar() {
                   color: "#fff",
                 }}
               >
-                {chapter}
+                {
+                  reading.chapter
+                }
               </Text>
             </TouchableOpacity>
 
             {/* VERSE */}
             <TouchableOpacity
-              onPress={() =>
-                router.push({
-                  pathname:
-                    "/reading/[book]/[chapter]",
-
-                  params: {
-                    book,
-                    chapter:
-                      String(
-                        chapter
-                      ),
-                    verse:
-                      String(
-                        verse
-                      ),
-                  },
-                })
+              onPress={
+                openVerse
               }
               style={{
                 paddingHorizontal: 8,
@@ -265,7 +354,9 @@ export default function AppBottomBar() {
                   fontSize: 12,
                 }}
               >
-                {verse}
+                {
+                  reading.verse
+                }
               </Text>
             </TouchableOpacity>
 
@@ -282,7 +373,9 @@ export default function AppBottomBar() {
                   fontSize: 12,
                 }}
               >
-                {version}
+                {
+                  reading.version
+                }
               </Text>
             </TouchableOpacity>
           </View>
@@ -297,6 +390,7 @@ export default function AppBottomBar() {
                 "center",
             }}
           >
+            {/* AUDIO */}
             <TouchableOpacity
               style={{
                 padding: 10,
@@ -309,6 +403,7 @@ export default function AppBottomBar() {
               />
             </TouchableOpacity>
 
+            {/* OPTIONS */}
             <TouchableOpacity
               style={{
                 padding: 10,
@@ -327,6 +422,7 @@ export default function AppBottomBar() {
         </View>
       </View>
 
+      {/* BOTTOM SHEET */}
       <AppBottomSheet
         visible={open}
         onClose={() =>

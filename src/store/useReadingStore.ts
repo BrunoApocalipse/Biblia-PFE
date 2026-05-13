@@ -7,19 +7,39 @@ import {
   persist,
 } from "zustand/middleware";
 
+// =====================================
+// TYPES
+// =====================================
+
 export type ReadingData = {
   book: string;
+
   chapter: number;
+
   verse: number;
+
   verseText?: string;
+
   version?: string;
 };
+
+export type VerseSelection = {
+  book: string;
+
+  chapter: number;
+
+  verse: number;
+};
+
+// =====================================
+// STORE
+// =====================================
 
 type ReadingState = {
   hydrated: boolean;
 
   // =====================================
-  // LEITURA
+  // READING
   // =====================================
 
   currentReading:
@@ -31,11 +51,11 @@ type ReadingState = {
     | null;
 
   // =====================================
-  // SELEÇÃO
+  // SELECTION
   // =====================================
 
   selectedVerse:
-    | number
+    | VerseSelection
     | null;
 
   // =====================================
@@ -51,11 +71,17 @@ type ReadingState = {
   ) => void;
 
   setSelectedVerse: (
-    verse: number | null
+    verse:
+      | VerseSelection
+      | null
   ) => void;
 
   clearSelection: () => void;
 };
+
+// =====================================
+// STORE
+// =====================================
 
 export const useReadingStore =
   create<ReadingState>()(
@@ -70,7 +96,7 @@ export const useReadingStore =
         selectedVerse: null,
 
         // =====================================
-        // CURRENT
+        // CURRENT READING
         // =====================================
 
         setCurrentReading: (
@@ -86,7 +112,7 @@ export const useReadingStore =
           }),
 
         // =====================================
-        // LAST
+        // LAST READING
         // =====================================
 
         setLastReading: (
@@ -102,15 +128,26 @@ export const useReadingStore =
           }),
 
         // =====================================
-        // SELECTED
+        // SELECT VERSE
         // =====================================
 
         setSelectedVerse: (
           verse
         ) =>
           set({
-            selectedVerse: verse,
+            selectedVerse: verse
+              ? {
+                  ...verse,
+
+                  book:
+                    verse.book.toLowerCase(),
+                }
+              : null,
           }),
+
+        // =====================================
+        // CLEAR
+        // =====================================
 
         clearSelection: () =>
           set({
@@ -125,6 +162,10 @@ export const useReadingStore =
           createJSONStorage(
             () => AsyncStorage
           ),
+
+        // =====================================
+        // HYDRATE
+        // =====================================
 
         onRehydrateStorage:
           () => () => {

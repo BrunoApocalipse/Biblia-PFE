@@ -1,29 +1,45 @@
-import React, { memo } from "react";
+import React, {
+  memo,
+} from "react";
+
 import {
   Pressable,
   Text,
   View,
 } from "react-native";
 
+// =====================================
+// TYPES
+// =====================================
+
 type Props = {
   verse: number;
+
   text?: string;
+
   selected?: boolean;
+
   compact?: boolean;
+
   onPress?: () => void;
+
   onLongPress?: () => void;
 };
+
+// =====================================
+// COMPONENT
+// =====================================
 
 function VerseItem({
   verse,
   text,
-  selected,
-  compact,
+  selected = false,
+  compact = false,
   onPress,
   onLongPress,
 }: Props) {
   // =====================================
-  // GRID DE VERSÍCULOS
+  // COMPACT MODE
   // =====================================
 
   if (compact) {
@@ -33,20 +49,39 @@ function VerseItem({
         onLongPress={
           onLongPress
         }
-        style={{
-          width: 70,
-          paddingVertical: 16,
-          margin: 6,
-          backgroundColor:
-            "#111",
-          borderRadius: 10,
-          alignItems: "center",
+        android_ripple={{
+          color:
+            "rgba(255,255,255,0.08)",
         }}
+        style={({ pressed }) => ({
+          width: 70,
+
+          paddingVertical: 16,
+
+          margin: 6,
+
+          borderRadius: 12,
+
+          alignItems:
+            "center",
+
+          backgroundColor:
+            pressed
+              ? "#1A1A1A"
+              : "#111",
+
+          opacity:
+            pressed
+              ? 0.9
+              : 1,
+        })}
       >
         <Text
           style={{
             color: "#fff",
+
             fontSize: 16,
+
             fontWeight: "600",
           }}
         >
@@ -57,7 +92,7 @@ function VerseItem({
   }
 
   // =====================================
-  // LEITURA
+  // READING MODE
   // =====================================
 
   return (
@@ -66,22 +101,39 @@ function VerseItem({
       onLongPress={
         onLongPress
       }
-      style={{
-        paddingVertical: 12,
+      delayLongPress={180}
+      android_ripple={{
+        color:
+          "rgba(255,255,255,0.05)",
+      }}
+      style={({ pressed }) => ({
+        paddingVertical: 14,
+
         paddingHorizontal: 14,
-        borderRadius: 10,
+
+        borderRadius: 14,
+
         marginBottom: 6,
+
         backgroundColor:
           selected
             ? "#1E1E1E"
+            : pressed
+            ? "#161616"
             : "#111",
-      }}
+
+        opacity:
+          pressed
+            ? 0.96
+            : 1,
+      })}
     >
       <View
         style={{
           flexDirection: "row",
         }}
       >
+        {/* VERSE NUMBER */}
         <Text
           style={{
             color: selected
@@ -103,12 +155,16 @@ function VerseItem({
           {verse}
         </Text>
 
+        {/* VERSE TEXT */}
         <Text
           style={{
-            color: "#fff",
-            fontSize: 16,
-            lineHeight: 28,
             flex: 1,
+
+            color: "#fff",
+
+            fontSize: 16,
+
+            lineHeight: 30,
           }}
         >
           {text}
@@ -118,4 +174,10 @@ function VerseItem({
   );
 }
 
-export default memo(VerseItem);
+// =====================================
+// EXPORT
+// =====================================
+
+export default memo(
+  VerseItem
+);

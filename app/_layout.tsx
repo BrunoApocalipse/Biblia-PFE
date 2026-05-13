@@ -24,13 +24,19 @@ export default function RootLayout() {
     <Stack
       screenOptions={{
         headerShown: false,
-
-        animation:
-          "fade",
+        animation: "fade",
       }}
     >
       <Stack.Screen
         name="(drawer)"
+      />
+
+      <Stack.Screen
+        name="(modals)/notes"
+        options={{
+          presentation:
+            "modal",
+        }}
       />
     </Stack>
   );

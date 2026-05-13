@@ -1,5 +1,7 @@
 import {
+  useCallback,
   useEffect,
+  useMemo,
   useRef,
 } from "react";
 
@@ -26,60 +28,131 @@ export default function Reading() {
   const hasScrolled =
     useRef(false);
 
+  // =====================================
+  // ROUTE PARAMS
+  // =====================================
+
   const {
     book,
     chapter,
     verse,
   } = useLocalSearchParams();
 
-  const {
-    selectedVerse,
-    setSelectedVerse,
-    setCurrentReading,
-    setLastReading,
-  } = useReadingStore();
+  const bookParam =
+    String(book).toLowerCase();
 
-  const { verses } = useBible(
-    String(book),
-    Number(chapter)
-  );
-
-  // =====================================
-  // INITIAL VERSE
-  // =====================================
+  const chapterParam =
+    Number(chapter);
 
   const initialVerse =
-    Number(verse);
-
-  // =====================================
-  // INIT SELECTED VERSE
-  // =====================================
-
-  useEffect(() => {
-    if (initialVerse) {
-      setSelectedVerse(initialVerse);
-    }
-  }, [initialVerse]);
+    Number(verse || 1);
 
   // =====================================
   // STORE
   // =====================================
 
+  const selectedVerse =
+    useReadingStore(
+      (state) =>
+        state.selectedVerse
+    );
+
+  const setSelectedVerse =
+    useReadingStore(
+      (state) =>
+        state.setSelectedVerse
+    );
+
+  const setCurrentReading =
+    useReadingStore(
+      (state) =>
+        state.setCurrentReading
+    );
+
+  const setLastReading =
+    useReadingStore(
+      (state) =>
+        state.setLastReading
+    );
+
+  // =====================================
+  // BIBLE
+  // =====================================
+
+  const { verses } = useBible(
+    bookParam,
+    chapterParam
+  );
+
+  // =====================================
+  // ACTIVE VERSE
+  // =====================================
+
+  const activeVerse =
+    selectedVerse?.book ===
+      bookParam &&
+    selectedVerse?.chapter ===
+      chapterParam
+      ? selectedVerse.verse
+      : initialVerse;
+
+  // =====================================
+  // ACTIVE VERSE DATA
+  // =====================================
+
+  const activeVerseData =
+    useMemo(() => {
+      return verses.find(
+        (item) =>
+          item.verse ===
+          activeVerse
+      );
+    }, [
+      verses,
+      activeVerse,
+    ]);
+
+  // =====================================
+  // STORE UPDATE
+  // =====================================
+
   useEffect(() => {
+    if (
+      verses.length === 0
+    ) {
+      return;
+    }
+
     const payload = {
-      book: String(book),
-      chapter: Number(chapter),
-      verse:
-        selectedVerse || 1,
+      book: bookParam,
+
+      chapter:
+        chapterParam,
+
+      verse: activeVerse,
+
+      verseText:
+        activeVerseData?.text ??
+        "",
+
+      version: "NVI",
     };
 
-    setCurrentReading(payload);
+    setCurrentReading(
+      payload
+    );
 
-    setLastReading(payload);
+    setLastReading(
+      payload
+    );
   }, [
-    book,
-    chapter,
-    selectedVerse,
+    verses,
+    bookParam,
+    chapterParam,
+    activeVerse,
+    activeVerseData,
+    setCurrentReading,
+    setLastReading,
   ]);
 
   // =====================================
@@ -89,9 +162,9 @@ export default function Reading() {
   useEffect(() => {
     hasScrolled.current = false;
   }, [
-    book,
-    chapter,
-    selectedVerse,
+    bookParam,
+    chapterParam,
+    initialVerse,
   ]);
 
   // =====================================
@@ -101,7 +174,6 @@ export default function Reading() {
   useEffect(() => {
     if (
       hasScrolled.current ||
-      !selectedVerse ||
       verses.length === 0
     ) {
       return;
@@ -112,7 +184,7 @@ export default function Reading() {
         try {
           listRef.current?.scrollToIndex({
             index:
-              selectedVerse - 1,
+              initialVerse - 1,
 
             animated: false,
 
@@ -121,19 +193,109 @@ export default function Reading() {
 
           hasScrolled.current =
             true;
-        } catch (error) {}
+        } catch {}
       }, 350);
 
     return () =>
       clearTimeout(timeout);
   }, [
-    selectedVerse,
+    initialVerse,
     verses.length,
   ]);
 
+  // =====================================
+  // TOGGLE VERSE
+  // =====================================
+
+  const toggleVerse =
+    useCallback(
+      (verseNumber: number) => {
+        const isSelected =
+          selectedVerse?.book ===
+            bookParam &&
+          selectedVerse?.chapter ===
+            chapterParam &&
+          selectedVerse?.verse ===
+            verseNumber;
+
+        // REMOVE
+        if (isSelected) {
+          setSelectedVerse(
+            null
+          );
+
+          return;
+        }
+
+        // SELECT
+        setSelectedVerse({
+          book: bookParam,
+
+          chapter:
+            chapterParam,
+
+          verse:
+            verseNumber,
+        });
+      },
+      [
+        selectedVerse,
+        bookParam,
+        chapterParam,
+        setSelectedVerse,
+      ]
+    );
+
+  // =====================================
+  // RENDER ITEM
+  // =====================================
+
+  const renderVerseItem =
+    useCallback(
+      ({ item }: any) => {
+        const isSelected =
+          selectedVerse?.book ===
+            bookParam &&
+          selectedVerse?.chapter ===
+            chapterParam &&
+          selectedVerse?.verse ===
+            item.verse;
+
+        return (
+          <VerseItem
+            verse={item.verse}
+            text={item.text}
+            selected={
+              isSelected
+            }
+            onPress={() =>
+              toggleVerse(
+                item.verse
+              )
+            }
+            onLongPress={() =>
+              toggleVerse(
+                item.verse
+              )
+            }
+          />
+        );
+      },
+      [
+        selectedVerse,
+        bookParam,
+        chapterParam,
+        toggleVerse,
+      ]
+    );
+
+  // =====================================
+  // RENDER
+  // =====================================
+
   return (
     <Container>
-      <FlashList<any>
+            <FlashList<any>
         ref={listRef}
         data={verses}
         {...({
@@ -146,26 +308,9 @@ export default function Reading() {
           paddingVertical: 12,
           paddingHorizontal: 12,
         }}
-        renderItem={({ item }) => (
-          <VerseItem
-            verse={item.verse}
-            text={item.text}
-            selected={
-              item.verse ===
-              selectedVerse
-            }
-            onPress={() => {
-              setSelectedVerse(
-                item.verse
-              );
-            }}
-            onLongPress={() => {
-              setSelectedVerse(
-                item.verse
-              );
-            }}
-          />
-        )}
+        renderItem={
+          renderVerseItem
+        }
       />
     </Container>
   );
